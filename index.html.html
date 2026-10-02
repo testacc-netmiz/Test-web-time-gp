@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>Grand RP Time Converter</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    :root {
+      --accent-1: #6a8cff;
+      --accent-2: #aaccff;
+      --accent-3: #c9a0ff;
+      --particle-core: #aaccff;
+      --particle-mid: #6a8cff;
+      --bg-glow-1: rgba(60, 100, 255, 0.18);
+      --bg-glow-2: rgba(150, 80, 255, 0.16);
+      --bg-glow-3: rgba(30, 60, 140, 0.12);
+      --grid-color: rgba(80, 140, 255, 0.05);
+      --card-border: rgba(80, 140, 255, 0.22);
+      --card-shadow: rgba(60, 120, 255, 0.12);
+      --text-grad-1: #ffffff;
+      --text-grad-2: #a0b8ff;
+      --text-grad-3: #c9a0ff;
+      --offset-bg: #1a2a4a;
+      --offset-border: #2f4a7a;
+      --offset-text: #aaccff;
+      --badge-bg: rgba(60, 110, 255, 0.15);
+      --badge-border: rgba(80, 140, 255, 0.28);
+      --badge-text: #b8d0ff;
+      /* Blur amount — 0 in lite mode, 22px normally */
+      --blur-amount: 22px;
+    }
+
+    /* ===== LITE MODE — disables heavy effects ===== */
+    body.lite-mode {
+      --blur-amount: 0px;
+    }
+    body.lite-mode .bg-video-layer { display: none; }
+    body.lite-mode .bg-grid { display: none; }
+    body.lite-mode .bg-scanlines { display: none; }
+    body.lite-mode .bg-sun { animation: none; }
+    body.lite-mode .windows { animation: none; }
+    body.lite-mode .particles { display: none; }
+    body.lite-mode #cursorGlow,
+    body.lite-mode #cursorRing,
+    body.lite-mode #cursorDot { display: none; }
+    body.lite-mode .dashboard {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: rgba(12, 8, 24, 0.92);
+    }
+    body.lite-mode .clock-card {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: rgba(8, 6, 20, 0.95);
+    }
+    body.lite-mode .theme-dropdown,
+    body.lite-mode .tz-modal {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    body.lite-mode .brand-text,
+    body.lite-mode .brand-icon,
+    body.lite-mode .status-dot,
+    body.lite-mode .status-dot::after {
+      animation: none !important;
+    }
+    body.lite-mode .palette-icon {
+      animation: none !important;
+    }
+    body.lite-mode * {
+      cursor: auto !important;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      cursor: none !important;
+    }
+    body.lite-mode * { cursor: auto !important; }
+
+    html, body {
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body {
+      background: #05030a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      position: relative;
+    }
+
+    ::selection { background: #ff2d9b; color: #ffffff; }
+    ::-moz-selection { background: #ff2d9b; color: #ffffff; }
+
+    /* ===== VIDEO BACKGROUND LAYER ===== */
+    .bg-video-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+      background: #05030a;
+    }
+
+    .bg-video-layer video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      transform: translate(-50%, -50%);
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 1.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .bg-video-layer video.ready {
+      opacity: 1;
+    }
+
+    .bg-video-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(5, 3, 10, 0.35) 0%, rgba(5, 3, 10, 0.78) 100%),
+        linear-gradient(180deg, rgba(10, 5, 25, 0.55) 0%, rgba(5, 3, 10, 0.75) 100%);
+      pointer-events: none;
+    }
+
+    .bg-video-tint {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: radial-gradient(circle at 50% 80%,
+        color-mix(in srgb, var(--accent-1) 18%, transparent),
+        transparent 65%);
+      mix-blend-mode: screen;
+      opacity: 0.6;
+      pointer-events: none;
+      transition: background 0.8s ease;
+    }
+
+    /* ===== GTA5 FALLBACK BACKGROUND ===== */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      overflow: hidden;
+      background: linear-gradient(180deg, #1a0a2e 0%, #2d0f3a 25%, #4a1442 50%, #6b1a3f 72%, #8a2444 88%, #b0303c 100%);
+    }
+
+    .bg-sun {
+      position: absolute;
+      bottom: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 340px; height: 340px;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(255, 180, 100, 0.85) 0%,
+        rgba(255, 120, 80, 0.6) 30%,
+        rgba(255, 60, 120, 0.35) 55%,
+        transparent 72%);
+      filter: blur(20px);
+      animation: sunPulse 6s ease-in-out infinite;
+    }
+
+    @keyframes sunPulse {
+      0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.9; }
+      50%      { transform: translateX(-50%) scale(1.08); opacity: 1; }
+    }
+
+    .bg-horizon {
+      position: absolute;
+      bottom: 18%;
+      left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(255, 180, 100, 0.7), transparent);
+      filter: blur(2px);
+    }
+
+    .palm {
+      position: absolute;
+      bottom: 0;
+      filter: drop-shadow(0 0 25px rgba(0, 0, 0, 0.9));
+      opacity: 0.92;
+    }
+    .palm-left { left: -10px; height: 46vh; }
+    .palm-right { right: -20px; height: 40vh; transform: scaleX(-1); }
+
+    .skyline {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 28%;
+      background: linear-gradient(180deg, transparent 0%, #0a0510 100%);
+    }
+    .skyline::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(90deg,
+          #0a0510 0px, #0a0510 12px,
+          transparent 12px, transparent 14px,
+          #0a0510 14px, #0a0510 26px,
+          transparent 26px, transparent 30px,
+          #0a0510 30px, #0a0510 44px,
+          transparent 44px, transparent 48px,
+          #0a0510 48px, #0a0510 58px,
+          transparent 58px, transparent 62px,
+          #0a0510 62px, #0a0510 80px);
+      -webkit-mask-image: linear-gradient(to top, black 30%, transparent 100%);
+      mask-image: linear-gradient(to top, black 30%, transparent 100%);
+      opacity: 0.85;
+    }
+
+    .windows {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 22%;
+      pointer-events: none;
+      opacity: 0.6;
+      background-image:
+        radial-gradient(2px 2px at 8% 80%, #ffcc88, transparent),
+        radial-gradient(2px 2px at 12% 70%, #ffaa66, transparent),
+        radial-gradient(2px 2px at 18% 85%, #ffcc88, transparent),
+        radial-gradient(2px 2px at 24% 75%, #ff9966, transparent),
+        radial-gradient(2px 2px at 32% 82%, #ffcc88, transparent),
+        radial-gradient(2px 2px at 42% 78%, #ffaa66, transparent),
+        radial-gradient(2px 2px at 50% 88%, #ffcc88, transparent),
+        radial-gradient(2px 2px at 58% 72%, #ff9966, transparent),
+        radial-gradient(2px 2px at 66% 84%, #ffcc88, transparent),
+        radial-gradient(2px 2px at 74% 76%, #ffaa66, transparent),
+        radial-gradient(2px 2px at 82% 86%, #ffcc88, transparent),
+        radial-gradient(2px 2px at 90% 74%, #ff9966, transparent);
+      animation: windowFlicker 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes windowFlicker {
+      0% { opacity: 0.5; }
+      100% { opacity: 0.75; }
+    }
+
+    .bg-grid {
+      position: absolute;
+      bottom: 0;
+      left: -50%; right: -50%;
+      height: 40%;
+      background-image:
+        linear-gradient(90deg, rgba(255, 100, 180, 0.35) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 100, 180, 0.25) 1px, transparent 1px);
+      background-size: 50px 30px;
+      transform: perspective(300px) rotateX(60deg);
+      transform-origin: center bottom;
+      mask-image: linear-gradient(to top, black 0%, transparent 80%);
+      -webkit-mask-image: linear-gradient(to top, black 0%, transparent 80%);
+      animation: gridScroll 3s linear infinite;
+    }
+
+    @keyframes gridScroll {
+      0%   { background-position: 0 0; }
+      100% { background-position: 0 30px; }
+    }
+
+    .bg-scanlines {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg,
+        rgba(0, 0, 0, 0.12) 0px, rgba(0, 0, 0, 0.12) 1px,
+        transparent 1px, transparent 3px);
+      pointer-events: none;
+      opacity: 0.35;
+      mix-blend-mode: multiply;
+    }
+
+    /* ===== PARTICLES ===== */
+    .particles {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.55;
+      animation: floatUp linear infinite;
+      transition: background 0.8s ease, box-shadow 0.8s ease;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+      10% { opacity: 0.85; }
+      90% { opacity: 0.6; }
+      100% { transform: translateY(-110vh) translateX(var(--drift, 40px)) scale(0.4); opacity: 0; }
+    }
+
+    /* ===== VIDEO INTRO OVERLAY ===== */
+    .intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      opacity: 1;
+      transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    body.lite-mode .intro-overlay { cursor: auto; }
+
+    .intro-overlay.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .intro-overlay video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      transform: translate(-50%, -50%);
+      object-fit: contain;
+      background: #000;
+    }
+
+    .intro-skip {
+      position: absolute;
+      bottom: 32px;
+      right: 40px;
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 500;
+      pointer-events: none;
+      z-index: 10;
+      animation: skipPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes skipPulse {
+      0%, 100% { opacity: 0.4; }
+      50%      { opacity: 0.9; }
+    }
+
+    /* ===== TIMEZONE MODAL ===== */
+    .tz-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      background: rgba(2, 4, 10, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.6s ease, visibility 0.6s;
+    }
+
+    .tz-modal.show { opacity: 1; visibility: visible; }
+
+    .tz-modal-card {
+      background: rgba(12, 18, 30, 0.95);
+      border: 1px solid var(--card-border);
+      border-radius: 2rem;
+      padding: 2.4rem 2.2rem;
+      max-width: 460px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 30px 70px -10px rgba(0, 0, 0, 0.9), 0 0 60px color-mix(in srgb, var(--accent-1) 20%, transparent);
+      transform: translateY(24px) scale(0.96);
+      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .tz-modal.show .tz-modal-card { transform: translateY(0) scale(1); }
+
+    .tz-modal-icon {
+      font-size: 3rem;
+      margin-bottom: 0.8rem;
+      filter: drop-shadow(0 0 15px var(--accent-1));
+      animation: iconFloat 3.5s ease-in-out infinite;
+    }
+
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50%      { transform: translateY(-4px) rotate(-3deg); }
+    }
+
+    .tz-modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ffffff, #aaccff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .tz-modal-sub { color: #8fa5d0; font-size: 0.9rem; margin-bottom: 1.4rem; }
+
+    .auto-detect-banner {
+      background: color-mix(in srgb, var(--accent-1) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent-1) 35%, transparent);
+      border-radius: 1.2rem;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1.2rem;
+      text-align: left;
+    }
+
+    .auto-detect-label {
+      color: #aac0f0;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-auto {
+      background: linear-gradient(135deg, var(--accent-1), var(--accent-3));
+      color: #fff;
+      font-size: 0.6rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 100px;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+
+    .auto-detect-time {
+      color: #ffffff;
+      font-size: 1.6rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 0.15rem;
+    }
+
+    .auto-detect-tz { color: var(--badge-text); font-size: 0.82rem; font-weight: 500; }
+
+    .tz-modal select {
+      width: 100%;
+      background: rgba(5, 10, 20, 0.9);
+      border: 1px solid var(--card-border);
+      border-radius: 100px;
+      padding: 0.85rem 1.3rem;
+      color: #ffffff;
+      font-size: 0.95rem;
+      outline: none;
+      margin-bottom: 1.2rem;
+      font-family: inherit;
+    }
+
+    .tz-modal select option { background: #0a1018; color: #ffffff; }
+
+    .tz-btn-row { display: flex; gap: 10px; flex-direction: column; }
+
+    .tz-modal-btn {
+      background: linear-gradient(145deg, var(--accent-1), color-mix(in srgb, var(--accent-3) 60%, var(--accent-1)));
+      border: none;
+      border-radius: 100px;
+      padding: 0.9rem 2.4rem;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 1.5px;
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 25px color-mix(in srgb, var(--accent-1) 40%, transparent);
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .tz-modal-btn:hover { transform: translateY(-2px); }
+    .tz-modal-btn.auto {
+      background: transparent;
+      border: 1.5px solid color-mix(in srgb, var(--accent-1) 50%, transparent);
+      color: var(--accent-2);
+      box-shadow: none;
+    }
+    .tz-modal-btn.auto:hover { background: color-mix(in srgb, var(--accent-1) 15%, transparent); }
+
+    /* ===== CUSTOM CURSOR ===== */
+    #cursorGlow {
+      position: fixed; top: 0; left: 0;
+      width: 450px; height: 450px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 1;
+      background: radial-gradient(circle,
+        color-mix(in srgb, var(--accent-1) 22%, transparent) 0%,
+        color-mix(in srgb, var(--accent-3) 14%, transparent) 30%,
+        transparent 70%);
+      transform: translate(-50%, -50%);
+      transition: opacity 0.3s ease, background 0.6s ease;
+      mix-blend-mode: screen;
+      filter: blur(10px);
+    }
+
+    #cursorRing {
+      position: fixed; top: 0; left: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10000;
+      border: 1.5px solid color-mix(in srgb, var(--accent-2) 80%, transparent);
+      transform: translate(-50%, -50%);
+      transition: width 0.18s, height 0.18s, border-color 0.6s, background 0.18s, border-radius 0.18s;
+      mix-blend-mode: screen;
+    }
+
+    #cursorDot {
+      position: fixed; top: 0; left: 0;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10001;
+      background: var(--accent-2);
+      box-shadow: 0 0 14px var(--accent-1), 0 0 30px var(--accent-1);
+      transform: translate(-50%, -50%);
+      transition: width 0.15s, height 0.15s, background 0.6s, box-shadow 0.6s;
+    }
+
+    body.cursor-hover #cursorRing {
+      width: 58px; height: 58px;
+      background: color-mix(in srgb, var(--accent-1) 12%, transparent);
+      border-color: var(--accent-2);
+    }
+    body.cursor-hover #cursorDot { width: 4px; height: 4px; }
+
+    body.cursor-text #cursorRing {
+      width: 4px; height: 30px;
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--accent-2) 70%, transparent);
+      border-color: var(--accent-2);
+    }
+    body.cursor-text #cursorDot { opacity: 0; }
+
+    body.cursor-down #cursorRing {
+      width: 48px; height: 48px;
+      background: color-mix(in srgb, var(--accent-1) 25%, transparent);
+    }
+
+    /* Hide custom cursor on touch devices */
+    @media (hover: none) and (pointer: coarse) {
+      #cursorGlow, #cursorRing, #cursorDot { display: none; }
+      * { cursor: auto !important; }
+    }
+
+    /* ===== DASHBOARD ===== */
+    .dashboard {
+      position: relative;
+      z-index: 3;
+      max-width: 1100px;
+      width: 100%;
+      background: rgba(12, 8, 24, 0.58);
+      backdrop-filter: blur(var(--blur-amount)) saturate(140%);
+      -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(140%);
+      border: 1px solid var(--card-border);
+      border-radius: 2.5rem;
+      padding: 2.2rem 2.2rem 2rem;
+      box-shadow:
+        0 25px 60px -10px rgba(0, 0, 0, 0.85),
+        0 0 0 1px color-mix(in srgb, var(--accent-1) 12%, transparent) inset,
+        0 0 60px color-mix(in srgb, var(--accent-1) 15%, transparent);
+      animation: dashboardIn 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: backdrop-filter 0.3s ease;
+    }
+
+    @keyframes dashboardIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2.2rem;
+      gap: 1rem;
+    }
+
+    .brand { display: flex; align-items: center; gap: 14px; }
+
+    .brand-icon {
+      font-size: 2.2rem;
+      filter: drop-shadow(0 0 15px var(--accent-1));
+      animation: iconFloat 3.5s ease-in-out infinite;
+    }
+
+    .brand-text {
+      font-size: 1.7rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text-grad-1) 0%, var(--text-grad-2) 60%, var(--text-grad-3) 100%);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: textShimmer 6s ease infinite;
+    }
+
+    @keyframes textShimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50%      { background-position: 100% 50%; }
+    }
+
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .header-sub {
+      display: flex; align-items: center; gap: 10px;
+      color: #8a9fc0;
+      font-size: 0.9rem;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.5rem 1.1rem;
+      border-radius: 100px;
+      border: 1px solid var(--card-border);
+    }
+
+    .status-dot {
+      width: 10px; height: 10px;
+      background: #2effb0;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 1.8s infinite;
+      box-shadow: 0 0 12px #2effb0;
+      position: relative;
+    }
+    .status-dot::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(46, 255, 176, 0.4);
+      animation: ringPulse 1.8s infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.85)} }
+    @keyframes ringPulse { 0%{transform:scale(.8);opacity:.8} 100%{transform:scale(1.6);opacity:0} }
+
+    .live-text { color: #b8ceff; font-weight: 600; letter-spacing: 1px; font-size: 0.85rem; }
+
+    .theme-wrap { position: relative; z-index: 50; }
+
+    .theme-trigger, .tz-btn, .perf-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.5rem 1.1rem;
+      border-radius: 100px;
+      border: 1px solid var(--card-border);
+      color: #c0d0f0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      font-family: inherit;
+    }
+    .theme-trigger:hover, .tz-btn:hover, .perf-btn:hover {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 25px color-mix(in srgb, var(--accent-1) 25%, transparent);
+    }
+
+    .perf-btn {
+      padding: 0.5rem 0.85rem;
+      font-size: 1rem;
+    }
+
+    .palette-icon {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #ff2d9b, #ffd700, #39ff14, #00e5ff, #6a8cff, #c9a0ff, #ff2d9b);
+      animation: spinSlow 6s linear infinite;
+    }
+    @keyframes spinSlow { to { transform: rotate(360deg); } }
+
+    .chev { font-size: 0.7rem; opacity: 0.7; transition: transform 0.3s ease; }
+    .theme-wrap.open .chev { transform: rotate(180deg); }
+
+    .theme-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      background: rgba(12, 18, 30, 0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 1.3rem;
+      padding: 1rem;
+      min-width: 260px;
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.9);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      transition: opacity 0.25s, transform 0.25s, visibility 0.25s;
+    }
+    .theme-wrap.open .theme-dropdown {
+      opacity: 1; visibility: visible; transform: translateY(0);
+    }
+
+    .theme-dropdown-label {
+      color: #7a8fb0;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin: 0 0 0.7rem 0.3rem;
+      font-weight: 600;
+    }
+
+    .swatch-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1.1rem; padding: 0 0.3rem; }
+
+    .swatch {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      padding: 0;
+    }
+    .swatch:hover { transform: scale(1.15); }
+    .swatch.active {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5), 0 0 16px currentColor;
+    }
+
+    .swatch[data-theme="nebula"] { background: linear-gradient(135deg, #6a8cff, #c9a0ff); color: #6a8cff; }
+    .swatch[data-theme="cyber"]  { background: linear-gradient(135deg, #00e5ff, #ff00e5); color: #00e5ff; }
+    .swatch[data-theme="ember"]  { background: linear-gradient(135deg, #ff6a3d, #ffd166); color: #ff6a3d; }
+    .swatch[data-theme="toxic"]  { background: linear-gradient(135deg, #39ff14, #00ffb3); color: #39ff14; }
+    .swatch[data-theme="rose"]   { background: linear-gradient(135deg, #ff2d9b, #ff6ec7); color: #ff2d9b; }
+    .swatch[data-theme="gold"]   { background: linear-gradient(135deg, #ffd700, #ff9500); color: #ffd700; }
+
+    .custom-theme-section {
+      border-top: 1px solid color-mix(in srgb, var(--accent-1) 20%, transparent);
+      padding-top: 0.9rem;
+      padding-left: 0.3rem;
+      padding-right: 0.3rem;
+    }
+
+    .custom-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin-bottom: 0.6rem;
+    }
+    .custom-row:last-of-type { margin-bottom: 0; }
+
+    .custom-row label { color: #b0c4e0; font-size: 0.78rem; font-weight: 500; letter-spacing: 0.5px; }
+
+    .color-picker-wrap {
+      position: relative;
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      border: 2px solid var(--card-border);
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      flex-shrink: 0;
+    }
+    .color-picker-wrap:hover {
+      transform: scale(1.1);
+      border-color: var(--accent-2);
+      box-shadow: 0 0 15px color-mix(in srgb, var(--accent-1) 40%, transparent);
+    }
+
+    .color-picker-wrap input[type="color"] {
+      position: absolute;
+      inset: -4px;
+      width: calc(100% + 8px);
+      height: calc(100% + 8px);
+      border: none;
+      padding: 0;
+      background: transparent;
+    }
+    .color-picker-wrap input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    .color-picker-wrap input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+    .color-picker-wrap input[type="color"]::-moz-color-swatch { border: none; border-radius: 50%; }
+
+    .save-theme-btn {
+      margin-top: 0.9rem;
+      width: 100%;
+      background: linear-gradient(145deg, var(--accent-1), color-mix(in srgb, var(--accent-3) 60%, var(--accent-1)));
+      border: none;
+      border-radius: 100px;
+      padding: 0.65rem 1.2rem;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 1.2px;
+      transition: all 0.2s ease;
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-1) 35%, transparent);
+      font-family: inherit;
+    }
+    .save-theme-btn:hover { transform: translateY(-1px); }
+
+    .tz-btn .globe { font-size: 1rem; }
+    .tz-btn .tz-label { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .clocks-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.6rem;
+      margin: 2rem 0 1.5rem;
+    }
+
+    .clock-card {
+      position: relative;
+      background: rgba(8, 6, 20, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 2rem;
+      padding: 2rem 1.7rem 1.6rem;
+      border: 1px solid var(--card-border);
+      box-shadow:
+        0 15px 35px -10px rgba(0, 0, 0, 0.75),
+        0 0 0 1px color-mix(in srgb, var(--accent-1) 10%, transparent) inset,
+        0 0 30px var(--card-shadow);
+      transition: transform 0.3s, border-color 0.5s, box-shadow 0.5s;
+      overflow: hidden;
+    }
+
+    .clock-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-2) 60%, transparent), transparent);
+    }
+
+    .clock-card:hover {
+      transform: translateY(-4px);
+      border-color: color-mix(in srgb, var(--accent-2) 50%, transparent);
+      box-shadow:
+        0 20px 45px -10px #000,
+        0 0 45px color-mix(in srgb, var(--accent-1) 25%, transparent);
+    }
+
+    .clock-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.1rem;
+      color: #aac0f0;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 2.5px;
+      font-weight: 600;
+    }
+    .clock-label span:last-child { color: #5f7da0; font-size: 0.68rem; letter-spacing: 1.5px; font-weight: 500; }
+
+    .clock-time {
+      font-size: 4.4rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      color: #ffffff;
+      text-shadow:
+        0 0 20px color-mix(in srgb, var(--accent-1) 55%, transparent),
+        0 0 45px color-mix(in srgb, var(--accent-1) 35%, transparent);
+      margin-bottom: 0.3rem;
+      word-break: break-word;
+    }
+
+    .clock-sub {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #8fa5d0;
+      font-size: 0.9rem;
+      margin-top: 0.6rem;
+      border-top: 1px solid color-mix(in srgb, var(--accent-1) 15%, transparent);
+      padding-top: 0.95rem;
+    }
+
+    .tz-badge {
+      background: var(--badge-bg);
+      padding: 0.25rem 0.8rem;
+      border-radius: 100px;
+      font-size: 0.72rem;
+      color: var(--badge-text);
+      border: 1px solid var(--badge-border);
+      letter-spacing: 1px;
+      font-weight: 500;
+      max-width: 45%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .example-conversion {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 100px;
+      padding: 0.7rem 2rem;
+      width: fit-content;
+      margin: 0 auto 1.5rem;
+      border: 1px solid var(--card-border);
+      font-size: 0.95rem;
+      color: #b8caf0;
+    }
+
+    .example-conversion .arrow {
+      color: var(--accent-1);
+      font-size: 1.2rem;
+      animation: arrowBounce 1.8s ease-in-out infinite;
+    }
+    @keyframes arrowBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(3px)} }
+
+    .example-conversion .irl-example {
+      color: #ffffff;
+      font-weight: 700;
+      background: color-mix(in srgb, var(--accent-1) 22%, transparent);
+      padding: 0.25rem 0.9rem;
+      border-radius: 100px;
+      font-variant-numeric: tabular-nums;
+      border: 1px solid color-mix(in srgb, var(--accent-1) 35%, transparent);
+    }
+
+    .example-conversion .rp-example {
+      color: #ffffff;
+      font-weight: 700;
+      background: color-mix(in srgb, var(--accent-3) 22%, transparent);
+      padding: 0.25rem 0.9rem;
+      border-radius: 100px;
+      font-variant-numeric: tabular-nums;
+      border: 1px solid color-mix(in srgb, var(--accent-3) 35%, transparent);
+    }
+
+    .footer-note {
+      text-align: center;
+      color: #4a5a78;
+      font-size: 0.72rem;
+      letter-spacing: 1.2px;
+      margin-top: 1.5rem;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 700px) {
+      .dashboard { padding: 1.6rem 1.3rem 1.5rem; border-radius: 2rem; }
+      .brand-text { font-size: 1.35rem; }
+      .clocks-grid { grid-template-columns: 1fr; gap: 1.3rem; }
+      .clock-time { font-size: 3.3rem; }
+      .theme-trigger, .tz-btn { padding: 0.45rem 0.9rem; font-size: 0.78rem; }
+      .example-conversion { flex-wrap: wrap; justify-content: center; padding: 0.8rem 1.3rem; }
+      .header-right { width: 100%; justify-content: flex-end; }
+      .theme-dropdown { right: 0; left: auto; min-width: 240px; }
+      .intro-skip { bottom: 20px; right: 20px; font-size: 0.7rem; }
+    }
+
+    @media (max-width: 420px) {
+      .clock-time { font-size: 2.7rem; }
+      .dashboard { padding: 1.1rem 1rem; }
+      .brand-icon { font-size: 1.7rem; }
+      .brand-text { font-size: 1.15rem; }
+      .swatch { width: 26px; height: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== VIDEO INTRO OVERLAY ===== -->
+  <div class="intro-overlay" id="introOverlay">
+    <video id="introVideo" autoplay muted playsinline preload="auto">
+      <source src="https://files.catbox.moe/nexrhf.webm" type="video/webm">
+    </video>
+    <div class="intro-skip" id="introSkipHint">Tap / Press Space to Skip</div>
+  </div>
+
+  <!-- ===== TIMEZONE MODAL ===== -->
+  <div class="tz-modal" id="tzModal">
+    <div class="tz-modal-card">
+      <div class="tz-modal-icon">🌍</div>
+      <div class="tz-modal-title">Choose Your Timezone</div>
+      <div class="tz-modal-sub">Which timezone should IRL time display in?</div>
+
+      <div class="auto-detect-banner">
+        <div class="auto-detect-label">
+          <span>🛰️ AUTO-DETECTED</span>
+          <span class="badge-auto">FAST</span>
+        </div>
+        <div class="auto-detect-time" id="autoDetectTime">--:--:--</div>
+        <div class="auto-detect-tz" id="autoDetectTz">Detecting your timezone…</div>
+      </div>
+
+      <div class="tz-btn-row">
+        <button class="tz-modal-btn auto" id="tzAutoConfirm">CONTINUE WITH AUTO-DETECTED</button>
+        <select id="tzSelect">
+          <option value="Asia/Kolkata">IST — Asia/Kolkata (UTC+5:30)</option>
+          <option value="UTC">UTC — Coordinated Universal Time</option>
+          <option value="America/New_York">EST — New York (UTC−5/−4)</option>
+          <option value="America/Chicago">CST — Chicago (UTC−6/−5)</option>
+          <option value="America/Denver">MST — Denver (UTC−7/−6)</option>
+          <option value="America/Los_Angeles">PST — Los Angeles (UTC−8/−7)</option>
+          <option value="America/Sao_Paulo">BRT — São Paulo (UTC−3)</option>
+          <option value="Europe/London">GMT/BST — London</option>
+          <option value="Europe/Paris">CET — Paris (UTC+1/+2)</option>
+          <option value="Europe/Moscow">MSK — Moscow (UTC+3)</option>
+          <option value="Asia/Dubai">GST — Dubai (UTC+4)</option>
+          <option value="Asia/Karachi">PKT — Karachi (UTC+5)</option>
+          <option value="Asia/Dhaka">BST — Dhaka (UTC+6)</option>
+          <option value="Asia/Bangkok">ICT — Bangkok (UTC+7)</option>
+          <option value="Asia/Shanghai">CST — Shanghai (UTC+8)</option>
+          <option value="Asia/Tokyo">JST — Tokyo (UTC+9)</option>
+          <option value="Australia/Sydney">AEDT — Sydney (UTC+10/+11)</option>
+          <option value="Pacific/Auckland">NZDT — Auckland (UTC+12/+13)</option>
+        </select>
+        <button class="tz-modal-btn" id="tzConfirm">CONFIRM SELECTION</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GTA5 FALLBACK BACKGROUND ===== -->
+  <div class="bg-layer">
+    <div class="bg-sun"></div>
+    <div class="bg-horizon"></div>
+    <svg class="palm palm-left" viewBox="0 0 200 300" preserveAspectRatio="xMidYMax meet">
+      <g fill="#0a0510">
+        <path d="M98 300 Q96 200 100 120 L104 120 Q108 200 106 300 Z"/>
+        <path d="M100 130 Q50 110 20 80 Q40 100 100 135 Z"/>
+        <path d="M100 130 Q150 110 180 80 Q160 100 100 135 Z"/>
+        <path d="M100 125 Q60 90 40 50 Q70 90 100 130 Z"/>
+        <path d="M100 125 Q140 90 160 50 Q130 90 100 130 Z"/>
+      </g>
+    </svg>
+    <svg class="palm palm-right" viewBox="0 0 200 300" preserveAspectRatio="xMidYMax meet">
+      <g fill="#0a0510">
+        <path d="M98 300 Q96 200 100 120 L104 120 Q108 200 106 300 Z"/>
+        <path d="M100 130 Q50 110 20 80 Q40 100 100 135 Z"/>
+        <path d="M100 130 Q150 110 180 80 Q160 100 100 135 Z"/>
+        <path d="M100 125 Q60 90 40 50 Q70 90 100 130 Z"/>
+        <path d="M100 125 Q140 90 160 50 Q130 90 100 130 Z"/>
+      </g>
+    </svg>
+    <div class="skyline"></div>
+    <div class="windows"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-scanlines"></div>
+  </div>
+
+  <!-- ===== VIDEO BACKGROUND ===== -->
+  <div class="bg-video-layer">
+    <video id="bgVideo" autoplay muted loop playsinline preload="none">
+      <source src="https://files.catbox.moe/ggn9ca.mp4" type="video/mp4">
+    </video>
+    <div class="bg-video-overlay"></div>
+    <div class="bg-video-tint"></div>
+  </div>
+
+  <!-- ===== PARTICLES ===== -->
+  <div class="particles" id="particles"></div>
+
+  <!-- custom cursor -->
+  <div id="cursorGlow"></div>
+  <div id="cursorRing"></div>
+  <div id="cursorDot"></div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div class="dashboard">
+    <div class="header">
+      <div class="brand">
+        <span class="brand-icon">🎮</span>
+        <span class="brand-text">GRAND RP · TIME</span>
+      </div>
+      <div class="header-right">
+        <button class="perf-btn" id="perfBtn" title="Toggle lite mode for slow devices">⚡</button>
+
+        <button class="tz-btn" id="tzBtn">
+          <span class="globe">🌍</span>
+          <span class="tz-label" id="tzBtnLabel">IST</span>
+        </button>
+
+        <div class="theme-wrap" id="themeWrap">
+          <button class="theme-trigger" id="themeTrigger">
+            <span class="palette-icon"></span>
+            <span>THEME</span>
+            <span class="chev">▼</span>
+          </button>
+          <div class="theme-dropdown" id="themeDropdown">
+            <div class="theme-dropdown-label">Presets</div>
+            <div class="swatch-row">
+              <button class="swatch active" data-theme="nebula" title="Nebula Blue"></button>
+              <button class="swatch" data-theme="cyber" title="Cyber Punk"></button>
+              <button class="swatch" data-theme="ember" title="Ember Sunset"></button>
+              <button class="swatch" data-theme="toxic" title="Toxic Green"></button>
+              <button class="swatch" data-theme="rose" title="Hot Rose"></button>
+              <button class="swatch" data-theme="gold" title="Golden Hour"></button>
+            </div>
+            <div class="custom-theme-section">
+              <div class="theme-dropdown-label" style="margin-top:0;">Custom</div>
+              <div class="custom-row">
+                <label>Accent</label>
+                <div class="color-picker-wrap">
+                  <input type="color" id="customAccent1" value="#6a8cff">
+                </div>
+              </div>
+              <div class="custom-row">
+                <label>Secondary</label>
+                <div class="color-picker-wrap">
+                  <input type="color" id="customAccent2" value="#aaccff">
+                </div>
+              </div>
+              <div class="custom-row">
+                <label>Highlight</label>
+                <div class="color-picker-wrap">
+                  <input type="color" id="customAccent3" value="#c9a0ff">
+                </div>
+              </div>
+              <button class="save-theme-btn" id="saveThemeBtn">SAVE THEME</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-sub">
+          <span class="status-dot"></span>
+          <span class="live-text">LIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="clocks-grid">
+      <div class="clock-card">
+        <div class="clock-label">
+          <span>🌍 IRL TIME</span>
+          <span id="irlTzAbbr">UTC+5:30</span>
+        </div>
+        <div class="clock-time" id="irlClock">12:18:42</div>
+        <div class="clock-sub">
+          <span id="irlDate">27 September 2026</span>
+          <span class="tz-badge" id="irlTzBadge">IRL CLOCK</span>
+        </div>
+      </div>
+
+      <div class="clock-card">
+        <div class="clock-label">
+          <span>🎮 GRAND RP</span>
+          <span>SERVER CLOCK</span>
+        </div>
+        <div class="clock-time" id="grandClock">07:47:42</div>
+        <div class="clock-sub">
+          <span>Live Conversion</span>
+          <span class="tz-badge" id="offsetTag">−04:30</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="example-conversion">
+      <span class="irl-example" id="exampleIrl">12:18</span>
+      <span class="arrow">↓</span>
+      <span class="rp-example" id="exampleGrand">07:48</span>
+      <span style="color:#6a7fa0; font-size:0.8rem; margin-left:8px;">Grand RP</span>
+    </div>
+
+    <div class="footer-note">
+      Grand RP server clock · calculated live from IRL time
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- CONSTANTS ----------
+      const DEFAULT_OFFSET_MINUTES = 270;
+      const STORAGE_KEY = 'grandRpOffsetMinutes_v2';
+      const THEME_KEY = 'grandRpTheme';
+      const CUSTOM_KEY = 'grandRpCustomTheme';
+      const TZ_KEY = 'grandRpTimezone';
+      const TZ_CHOSEN_KEY = 'grandRpTimezoneChosen';
+      const INTRO_SESSION_KEY = 'grandRpIntroShown';
+      const LITE_KEY = 'grandRpLiteMode';
+
+      // ---------- DEVICE PERFORMANCE DETECTION ----------
+      function detectLowEnd() {
+        try {
+          const cores = navigator.hardwareConcurrency || 4;
+          const mem = navigator.deviceMemory || 4;
+          const dpr = window.devicePixelRatio || 1;
+          const screenW = window.screen.width;
+
+          // Low-end if:
+          // - 4 or fewer CPU cores
+          // - 4GB or less RAM
+          // - Small screen + high DPR (typical of cheap older phones)
+          // - Known slow UA hints
+          if (cores <= 4) return true;
+          if (mem <= 4) return true;
+          if (screenW <= 400 && dpr >= 3) return true;
+
+          // Legacy iPhone detection (A11 and older — iPhone 8 Plus, X, etc.)
+          const ua = navigator.userAgent;
+          const oldIPhoneMatch = ua.match(/iPhone.*OS (\d+)_/);
+          if (oldIPhoneMatch) {
+            const majorVersion = parseInt(oldIPhoneMatch[1], 10);
+            // iOS 15 and older on iPhone = likely older hardware
+            if (majorVersion <= 15) return true;
+          }
+
+          // Android mid-range detection (Redmi, Realme, Poco etc.)
+          if (/Android/.test(ua)) {
+            // Check device pixel ratio + screen size combos
+            if (dpr <= 2 && screenW <= 400) return true;
+          }
+
+          return false;
+        } catch(e) {
+          return false;
+        }
+      }
+
+      function enableLiteMode(save = true) {
+        document.body.classList.add('lite-mode');
+        // Pause background video to save battery/CPU
+        try { bgVideo.pause(); } catch(e) {}
+        // Update perf button
+        const perfBtn = document.getElementById('perfBtn');
+        if (perfBtn) perfBtn.textContent = '⚡';
+        perfBtn.title = 'Lite mode ON — tap to turn off';
+        if (save) {
+          try { localStorage.setItem(LITE_KEY, '1'); } catch(e) {}
+        }
+      }
+
+      function disableLiteMode(save = true) {
+        document.body.classList.remove('lite-mode');
+        // Resume background video
+        try { bgVideo.play().catch(() => {}); } catch(e) {}
+        const perfBtn = document.getElementById('perfBtn');
+        if (perfBtn) perfBtn.textContent = '⚡';
+        perfBtn.title = 'Lite mode OFF — tap to turn on';
+        if (save) {
+          try { localStorage.setItem(LITE_KEY, '0'); } catch(e) {}
+        }
+      }
+
+      // ---------- DOM ----------
+      const irlClockEl = document.getElementById('irlClock');
+      const grandClockEl = document.getElementById('grandClock');
+      const irlDateEl = document.getElementById('irlDate');
+      const irlTzAbbr = document.getElementById('irlTzAbbr');
+      const irlTzBadge = document.getElementById('irlTzBadge');
+      const offsetTagEl = document.getElementById('offsetTag');
+      const exampleIrlEl = document.getElementById('exampleIrl');
+      const exampleGrandEl = document.getElementById('exampleGrand');
+      const particlesContainer = document.getElementById('particles');
+      const bgVideo = document.getElementById('bgVideo');
+
+      const themeWrap = document.getElementById('themeWrap');
+      const themeTrigger = document.getElementById('themeTrigger');
+      const swatches = document.querySelectorAll('.swatch');
+      const customAccent1 = document.getElementById('customAccent1');
+      const customAccent2 = document.getElementById('customAccent2');
+      const customAccent3 = document.getElementById('customAccent3');
+      const saveThemeBtn = document.getElementById('saveThemeBtn');
+
+      const tzBtn = document.getElementById('tzBtn');
+      const tzBtnLabel = document.getElementById('tzBtnLabel');
+      const tzModal = document.getElementById('tzModal');
+      const tzSelect = document.getElementById('tzSelect');
+      const tzConfirm = document.getElementById('tzConfirm');
+      const tzAutoConfirm = document.getElementById('tzAutoConfirm');
+      const autoDetectTime = document.getElementById('autoDetectTime');
+      const autoDetectTz = document.getElementById('autoDetectTz');
+      const perfBtn = document.getElementById('perfBtn');
+
+      const introOverlay = document.getElementById('introOverlay');
+      const introVideo = document.getElementById('introVideo');
+
+      let offsetMinutes = DEFAULT_OFFSET_MINUTES;
+      let currentTheme = 'nebula';
+      let userTimezone = 'Asia/Kolkata';
+      let detectedTimezone = 'Asia/Kolkata';
+      let liteMode = false;
+
+      // ---------- INIT LITE MODE DECISION ----------
+      function initLiteMode() {
+        let saved = null;
+        try { saved = localStorage.getItem(LITE_KEY); } catch(e) {}
+
+        if (saved === '1') {
+          liteMode = true;
+          enableLiteMode(false);
+        } else if (saved === '0') {
+          liteMode = false;
+          disableLiteMode(false);
+        } else {
+          // First visit — auto-detect
+          const lowEnd = detectLowEnd();
+          liteMode = lowEnd;
+          if (lowEnd) enableLiteMode(true);
+          else disableLiteMode(false);
+        }
+
+        // Wire toggle button
+        perfBtn.addEventListener('click', () => {
+          liteMode = !liteMode;
+          if (liteMode) enableLiteMode(true);
+          else disableLiteMode(true);
+        });
+      }
+
+      // ---------- BACKGROUND VIDEO ----------
+      function initVideoBackground() {
+        // Skip loading video entirely in lite mode
+        if (liteMode) {
+          bgVideo.style.display = 'none';
+          return;
+        }
+
+        bgVideo.addEventListener('canplaythrough', () => bgVideo.classList.add('ready'), { once: true });
+        bgVideo.addEventListener('loadeddata', () => bgVideo.classList.add('ready'), { once: true });
+
+        const tryPlay = () => {
+          const p = bgVideo.play();
+          if (p && p.catch) {
+            p.catch(() => {
+              const kick = () => {
+                bgVideo.play().catch(() => {});
+                document.removeEventListener('click', kick);
+                document.removeEventListener('touchstart', kick);
+                document.removeEventListener('keydown', kick);
+              };
+              document.addEventListener('click', kick, { once: true });
+              document.addEventListener('touchstart', kick, { once: true });
+              document.addEventListener('keydown', kick, { once: true });
+            });
+          }
+        };
+        tryPlay();
+        bgVideo.addEventListener('error', () => { bgVideo.style.display = 'none'; });
+      }
+
+      // ---------- INTRO ----------
+      function hideIntro() {
+        if (introOverlay.classList.contains('hide')) return;
+        introOverlay.classList.add('hide');
+
+        let tzAlreadyChosen = false;
+        try { tzAlreadyChosen = localStorage.getItem(TZ_CHOSEN_KEY) === '1'; } catch(e) {}
+
+        if (!tzAlreadyChosen) {
+          setTimeout(() => {
+            updateAutoDetectBanner();
+            tzModal.classList.add('show');
+          }, 800);
+        }
+
+        setTimeout(() => {
+          introOverlay.style.display = 'none';
+          try { introVideo.pause(); } catch(e) {}
+        }, 1500);
+      }
+
+      function markIntroShown() {
+        try { sessionStorage.setItem(INTRO_SESSION_KEY, '1'); } catch(e) {}
+      }
+
+      function initIntro() {
+        // Skip intro entirely in lite mode
+        if (liteMode) {
+          introOverlay.style.display = 'none';
+          let tzAlreadyChosen = false;
+          try { tzAlreadyChosen = localStorage.getItem(TZ_CHOSEN_KEY) === '1'; } catch(e) {}
+          if (!tzAlreadyChosen) {
+            setTimeout(() => {
+              updateAutoDetectBanner();
+              tzModal.classList.add('show');
+            }, 400);
+          }
+          return;
+        }
+
+        let alreadyShown = false;
+        try { alreadyShown = sessionStorage.getItem(INTRO_SESSION_KEY) === '1'; } catch(e) {}
+
+        if (alreadyShown) {
+          introOverlay.style.display = 'none';
+          let tzAlreadyChosen = false;
+          try { tzAlreadyChosen = localStorage.getItem(TZ_CHOSEN_KEY) === '1'; } catch(e) {}
+          if (!tzAlreadyChosen) {
+            setTimeout(() => {
+              updateAutoDetectBanner();
+              tzModal.classList.add('show');
+            }, 400);
+          }
+          return;
+        }
+
+        const playPromise = introVideo.play();
+        if (playPromise && playPromise.catch) {
+          playPromise.catch(() => hideIntro());
+        }
+
+        introVideo.addEventListener('ended', () => {
+          markIntroShown();
+          hideIntro();
+        }, { once: true });
+
+        introVideo.addEventListener('error', () => hideIntro(), { once: true });
+
+        setTimeout(() => {
+          if (!introOverlay.classList.contains('hide')) {
+            markIntroShown();
+            hideIntro();
+          }
+        }, 30000);
+
+        introOverlay.addEventListener('click', () => {
+          markIntroShown();
+          hideIntro();
+        });
+
+        introOverlay.addEventListener('touchstart', () => {
+          markIntroShown();
+          hideIntro();
+        }, { passive: true });
+
+        document.addEventListener('keydown', (e) => {
+          if (e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault();
+            if (!introOverlay.classList.contains('hide')) {
+              markIntroShown();
+              hideIntro();
+            }
+          }
+        });
+      }
+
+      // ---------- COLOR UTILS ----------
+      function hexToRgb(hex) {
+        const h = hex.replace('#', '');
+        return {
+          r: parseInt(h.substring(0, 2), 16),
+          g: parseInt(h.substring(2, 4), 16),
+          b: parseInt(h.substring(4, 6), 16)
+        };
+      }
+      function rgba(hex, alpha) {
+        const { r, g, b } = hexToRgb(hex);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+      function mix(hex1, hex2, weight = 0.5) {
+        const c1 = hexToRgb(hex1);
+        const c2 = hexToRgb(hex2);
+        const r = Math.round(c1.r * (1 - weight) + c2.r * weight);
+        const g = Math.round(c1.g * (1 - weight) + c2.g * weight);
+        const b = Math.round(c1.b * (1 - weight) + c2.b * weight);
+        return `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+      }
+      function darken(hex, amount = 0.35) { return mix(hex, '#000000', amount); }
+
+      function buildThemeFromAccents(a1, a2, a3) {
+        return {
+          '--accent-1': a1,
+          '--accent-2': a2,
+          '--accent-3': a3,
+          '--particle-core': a2,
+          '--particle-mid': a1,
+          '--bg-glow-1': rgba(a1, 0.18),
+          '--bg-glow-2': rgba(a3, 0.16),
+          '--bg-glow-3': rgba(darken(a1, 0.4), 0.14),
+          '--grid-color': rgba(a1, 0.05),
+          '--card-border': rgba(a1, 0.25),
+          '--card-shadow': rgba(a1, 0.15),
+          '--text-grad-1': '#ffffff',
+          '--text-grad-2': a2,
+          '--text-grad-3': a3,
+          '--offset-bg': darken(a1, 0.6),
+          '--offset-border': darken(a1, 0.25),
+          '--offset-text': a2,
+          '--badge-bg': rgba(a1, 0.15),
+          '--badge-border': rgba(a1, 0.35),
+          '--badge-text': a2
+        };
+      }
+
+      const THEMES = {
+        nebula: { a1: '#6a8cff', a2: '#aaccff', a3: '#c9a0ff' },
+        cyber:  { a1: '#00e5ff', a2: '#7dfcff', a3: '#ff00e5' },
+        ember:  { a1: '#ff6a3d', a2: '#ffb07d', a3: '#ffd166' },
+        toxic:  { a1: '#39ff14', a2: '#8affaa', a3: '#00ffb3' },
+        rose:   { a1: '#ff2d9b', a2: '#ff8ac9', a3: '#ff6ec7' },
+        gold:   { a1: '#ffd700', a2: '#ffe680', a3: '#ff9500' }
+      };
+
+      function applyThemeVars(vars) {
+        const root = document.documentElement;
+        for (const key in vars) root.style.setProperty(key, vars[key]);
+        const pc = vars['--particle-core'];
+        const pm = vars['--particle-mid'];
+        document.querySelectorAll('.particle').forEach(p => {
+          p.style.background = `radial-gradient(circle, ${pc} 0%, ${pm} 40%, transparent 70%)`;
+          p.style.boxShadow = `0 0 8px ${pm}b3`;
+        });
+      }
+
+      function applyPreset(name, save = true) {
+        const preset = THEMES[name];
+        if (!preset) return;
+        const vars = buildThemeFromAccents(preset.a1, preset.a2, preset.a3);
+        applyThemeVars(vars);
+        currentTheme = name;
+        swatches.forEach(s => s.classList.toggle('active', s.dataset.theme === name));
+        customAccent1.value = preset.a1;
+        customAccent2.value = preset.a2;
+        customAccent3.value = preset.a3;
+        if (save) {
+          try {
+            localStorage.setItem(THEME_KEY, name);
+            localStorage.removeItem(CUSTOM_KEY);
+          } catch(e) {}
+        }
+      }
+
+      function applyCustomTheme(save = true) {
+        const a1 = customAccent1.value;
+        const a2 = customAccent2.value;
+        const a3 = customAccent3.value;
+        const vars = buildThemeFromAccents(a1, a2, a3);
+        applyThemeVars(vars);
+        currentTheme = 'custom';
+        swatches.forEach(s => s.classList.remove('active'));
+        if (save) {
+          try {
+            localStorage.setItem(THEME_KEY, 'custom');
+            localStorage.setItem(CUSTOM_KEY, JSON.stringify({ a1, a2, a3 }));
+          } catch(e) {}
+        }
+      }
+
+      function loadTheme() {
+        try {
+          const saved = localStorage.getItem(THEME_KEY);
+          if (saved === 'custom') {
+            const custom = localStorage.getItem(CUSTOM_KEY);
+            if (custom) {
+              const { a1, a2, a3 } = JSON.parse(custom);
+              customAccent1.value = a1;
+              customAccent2.value = a2;
+              customAccent3.value = a3;
+              applyCustomTheme(false);
+              return;
+            }
+          }
+          if (saved && THEMES[saved]) {
+            applyPreset(saved, false);
+            return;
+          }
+        } catch(e) {}
+        applyPreset('nebula', false);
+      }
+
+      themeTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        themeWrap.classList.toggle('open');
+      });
+      document.addEventListener('click', (e) => {
+        if (!themeWrap.contains(e.target)) themeWrap.classList.remove('open');
+      });
+      swatches.forEach(sw => {
+        sw.addEventListener('click', (e) => {
+          e.stopPropagation();
+          applyPreset(sw.dataset.theme);
+        });
+      });
+      [customAccent1, customAccent2, customAccent3].forEach(inp => {
+        inp.addEventListener('input', () => applyCustomTheme(false));
+      });
+      saveThemeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        applyCustomTheme(true);
+        saveThemeBtn.textContent = 'SAVED ✓';
+        setTimeout(() => { saveThemeBtn.textContent = 'SAVE THEME'; }, 1500);
+      });
+
+      // ---------- TIMEZONE ----------
+      const TZ_LABELS = {
+        'Asia/Kolkata': 'IST', 'UTC': 'UTC',
+        'America/New_York': 'EST', 'America/Chicago': 'CST',
+        'America/Denver': 'MST', 'America/Los_Angeles': 'PST',
+        'America/Sao_Paulo': 'BRT', 'Europe/London': 'GMT',
+        'Europe/Paris': 'CET', 'Europe/Moscow': 'MSK',
+        'Asia/Dubai': 'GST', 'Asia/Karachi': 'PKT',
+        'Asia/Dhaka': 'BST', 'Asia/Bangkok': 'ICT',
+        'Asia/Shanghai': 'CST', 'Asia/Tokyo': 'JST',
+        'Australia/Sydney': 'AEDT', 'Pacific/Auckland': 'NZDT'
+      };
+
+      function getTzOffsetLabel(tz) {
+        try {
+          const now = new Date();
+          const formatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });
+          const parts = formatter.formatToParts(now);
+          const tzPart = parts.find(p => p.type === 'timeZoneName');
+          if (tzPart) return tzPart.value.replace('GMT', 'UTC');
+        } catch(e) {}
+        return 'UTC';
+      }
+
+      function updateTzUI() {
+        const abbr = TZ_LABELS[userTimezone] || userTimezone;
+        tzBtnLabel.textContent = abbr;
+        irlTzAbbr.textContent = getTzOffsetLabel(userTimezone);
+        irlTzBadge.textContent = userTimezone;
+      }
+
+      function saveTimezone(tz) {
+        userTimezone = tz;
+        try {
+          localStorage.setItem(TZ_KEY, tz);
+          localStorage.setItem(TZ_CHOSEN_KEY, '1');
+        } catch(e) {}
+        updateTzUI();
+        updateClocks();
+      }
+
+      function loadTimezone() {
+        try {
+          const saved = localStorage.getItem(TZ_KEY);
+          if (saved && TZ_LABELS[saved]) userTimezone = saved;
+        } catch(e) {}
+        tzSelect.value = userTimezone;
+        updateTzUI();
+      }
+
+      function detectBrowserTimezone() {
+        try {
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          if (tz && TZ_LABELS[tz]) {
+            detectedTimezone = tz;
+          } else if (tz) {
+            const opt = document.createElement('option');
+            opt.value = tz;
+            opt.textContent = tz + ' — ' + getTzOffsetLabel(tz);
+            tzSelect.insertBefore(opt, tzSelect.firstChild);
+            TZ_LABELS[tz] = tz.split('/').pop().substring(0, 4).toUpperCase();
+            detectedTimezone = tz;
+          }
+        } catch(e) {}
+      }
+
+      function updateAutoDetectBanner() {
+        try {
+          const now = new Date();
+          const fmt = new Intl.DateTimeFormat('en-GB', {
+            timeZone: detectedTimezone, hour12: false,
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+          });
+          autoDetectTime.textContent = fmt.format(now);
+          const abbr = TZ_LABELS[detectedTimezone] || detectedTimezone;
+          const offset = getTzOffsetLabel(detectedTimezone);
+          autoDetectTz.textContent = `${detectedTimezone} · ${abbr} · ${offset}`;
+        } catch(e) {
+          autoDetectTime.textContent = '--:--:--';
+          autoDetectTz.textContent = 'Could not detect';
+        }
+      }
+
+      tzBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        updateAutoDetectBanner();
+        tzModal.classList.add('show');
+      });
+
+      tzConfirm.addEventListener('click', () => {
+        saveTimezone(tzSelect.value);
+        tzModal.classList.remove('show');
+      });
+
+      tzAutoConfirm.addEventListener('click', () => {
+        saveTimezone(detectedTimezone);
+        tzModal.classList.remove('show');
+      });
+
+      setInterval(() => {
+        if (tzModal.classList.contains('show')) updateAutoDetectBanner();
+      }, 1000);
+
+      // ---------- PARTICLES (skipped in lite mode) ----------
+      function createParticles() {
+        if (liteMode) return;
+        const count = window.innerWidth < 600 ? 25 : 45;
+        for (let i = 0; i < count; i++) {
+          const p = document.createElement('div');
+          p.className = 'particle';
+          const size = Math.random() * 3 + 1.5;
+          const startX = Math.random() * 100;
+          const duration = Math.random() * 18 + 14;
+          const delay = Math.random() * -30;
+          const drift = (Math.random() - 0.5) * 160;
+          const opacity = Math.random() * 0.5 + 0.25;
+          p.style.width = size + 'px';
+          p.style.height = size + 'px';
+          p.style.left = startX + '%';
+          p.style.bottom = '-10px';
+          p.style.setProperty('--drift', drift + 'px');
+          p.style.animationDuration = duration + 's';
+          p.style.animationDelay = delay + 's';
+          p.style.opacity = opacity;
+          particlesContainer.appendChild(p);
+        }
+      }
+      createParticles();
+
+      // ---------- CUSTOM CURSOR (desktop only, skip in lite) ----------
+      const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+      const cursorGlow = document.getElementById('cursorGlow');
+      const cursorRing = document.getElementById('cursorRing');
+      const cursorDot = document.getElementById('cursorDot');
+
+      if (!isTouchDevice && !liteMode) {
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let glowX = mouseX, glowY = mouseY;
+        let ringX = mouseX, ringY = mouseY;
+        let dotX = mouseX, dotY = mouseY;
+
+        document.addEventListener('mousemove', (e) => {
+          mouseX = e.clientX;
+          mouseY = e.clientY;
+        });
+        document.addEventListener('mouseleave', () => {
+          cursorGlow.style.opacity = '0';
+          cursorRing.style.opacity = '0';
+          cursorDot.style.opacity = '0';
+        });
+        document.addEventListener('mouseenter', () => {
+          cursorGlow.style.opacity = '1';
+          cursorRing.style.opacity = '1';
+          cursorDot.style.opacity = '1';
+        });
+
+        function animateCursor() {
+          glowX += (mouseX - glowX) * 0.08;
+          glowY += (mouseY - glowY) * 0.08;
+          cursorGlow.style.transform = `translate(${glowX}px, ${glowY}px) translate(-50%, -50%)`;
+          ringX += (mouseX - ringX) * 0.18;
+          ringY += (mouseY - ringY) * 0.18;
+          cursorRing.style.transform = `translate(${ringX}px, ${ringY}px) translate(-50%, -50%)`;
+          dotX += (mouseX - dotX) * 0.35;
+          dotY += (mouseY - dotY) * 0.35;
+          cursorDot.style.transform = `translate(${dotX}px, ${dotY}px) translate(-50%, -50%)`;
+          requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        const interactiveSelector = 'button, a, input, select, textarea, .theme-trigger, .swatch, .clock-card, .tz-badge, .irl-example, .rp-example, .color-picker-wrap, .tz-btn, .perf-btn';
+        document.addEventListener('mouseover', (e) => {
+          const target = e.target;
+          if (target.closest(interactiveSelector)) {
+            document.body.classList.add('cursor-hover');
+            document.body.classList.remove('cursor-text');
+          } else if (target.matches('p, span, h1, h2, h3, h4, h5, h6, label')) {
+            if (!target.closest('button, a, input, select, textarea')) {
+              document.body.classList.add('cursor-text');
+              document.body.classList.remove('cursor-hover');
+            }
+          } else {
+            document.body.classList.remove('cursor-hover', 'cursor-text');
+          }
+        });
+        document.addEventListener('mousedown', () => document.body.classList.add('cursor-down'));
+        document.addEventListener('mouseup', () => document.body.classList.remove('cursor-down'));
+      }
+
+      // ---------- OFFSET ----------
+      function loadOffsetFromStorage() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved !== null) {
+            const parsed = parseInt(saved, 10);
+            if (!isNaN(parsed) && parsed >= 0 && parsed <= 1439) {
+              offsetMinutes = parsed;
+            } else {
+              offsetMinutes = DEFAULT_OFFSET_MINUTES;
+            }
+          } else {
+            offsetMinutes = DEFAULT_OFFSET_MINUTES;
+          }
+        } catch (e) {
+          offsetMinutes = DEFAULT_OFFSET_MINUTES;
+        }
+      }
+      function updateOffsetLabels() {
+        const hours = Math.floor(offsetMinutes / 60);
+        const mins = offsetMinutes % 60;
+        const formatted = `−${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+        offsetTagEl.textContent = formatted;
+      }
+
+      // ---------- TIME ----------
+      function getIrlTimeParts() {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-GB', {
+          timeZone: userTimezone, hour12: false,
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+          year: 'numeric', month: '2-digit', day: '2-digit'
+        });
+        const parts = formatter.formatToParts(now);
+        const partMap = {};
+        parts.forEach(({ type, value }) => { if (type !== 'literal') partMap[type] = value; });
+        return {
+          hours: parseInt(partMap.hour, 10),
+          minutes: parseInt(partMap.minute, 10),
+          seconds: parseInt(partMap.second, 10),
+          dateObj: new Date(
+            parseInt(partMap.year, 10),
+            parseInt(partMap.month, 10) - 1,
+            parseInt(partMap.day, 10)
+          )
+        };
+      }
+      function formatTime(h, m, s) {
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+      function formatTimeShort(h, m) {
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      }
+      function formatDate(dateObj) {
+        return dateObj.toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+      function irlMinutesToGrandRpMinutes(irlMinutes, offset) {
+        let grandMinutes = irlMinutes - offset;
+        return ((grandMinutes % 1440) + 1440) % 1440;
+      }
+
+      function updateClocks() {
+        const irl = getIrlTimeParts();
+        const irlMinutes = irl.hours * 60 + irl.minutes;
+        const grandMinutes = irlMinutesToGrandRpMinutes(irlMinutes, offsetMinutes);
+        const grandHours = Math.floor(grandMinutes / 60);
+        const grandMins = grandMinutes % 60;
+        const seconds = irl.seconds;
+
+        irlClockEl.textContent = formatTime(irl.hours, irl.minutes, seconds);
+        irlDateEl.textContent = formatDate(irl.dateObj);
+        grandClockEl.textContent = formatTime(grandHours, grandMins, seconds);
+        exampleIrlEl.textContent = formatTimeShort(irl.hours, irl.minutes);
+        exampleGrandEl.textContent = formatTimeShort(grandHours, grandMins);
+      }
+
+      // ---------- INIT ----------
+      function init() {
+        initLiteMode();
+        initVideoBackground();
+        loadOffsetFromStorage();
+        updateOffsetLabels();
+        loadTheme();
+        loadTimezone();
+        detectBrowserTimezone();
+        updateClocks();
+        setInterval(updateClocks, 1000);
+
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) {
+            updateClocks();
+            if (!liteMode && bgVideo.paused && bgVideo.classList.contains('ready')) {
+              bgVideo.play().catch(() => {});
+            }
+          }
+        });
+
+        initIntro();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
